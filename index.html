@@ -1,0 +1,4240 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <title>CyberTrace — Don't Just Learn. Investigate.</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <style>
+    /* =========================================================
+       CYBERTRACE
+       Modern SOC Investigation UI
+       ========================================================= */
+
+    :root {
+      --bg: #070b14;
+      --bg-soft: #0a101d;
+
+      --panel: #0f1626;
+      --panel-2: #121c30;
+      --panel-3: #0c1423;
+
+      --line: #25324d;
+      --line-soft: #1a263d;
+
+      --text: #e8eefc;
+      --muted: #8b9bbd;
+
+      --cyan: #3ad1ff;
+      --cyan-soft: rgba(58, 209, 255, 0.10);
+      --cyan-glow: rgba(58, 209, 255, 0.20);
+
+      --success: #2ee59d;
+      --success-soft: rgba(46, 229, 157, 0.10);
+
+      --warning: #ffb020;
+      --warning-soft: rgba(255, 176, 32, 0.10);
+
+      --danger: #ff3b5c;
+      --danger-soft: rgba(255, 59, 92, 0.10);
+
+      --shadow: 0 12px 35px rgba(0, 0, 0, 0.22);
+
+      --radius: 14px;
+      --radius-sm: 10px;
+
+      --sans:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      --mono:
+        "JetBrains Mono",
+        monospace;
+
+      color-scheme: dark;
+      box-sizing: border-box;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: inherit;
+    }
+
+    html {
+      scroll-padding-top: 80px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(
+          circle at 50% -20%,
+          rgba(58, 209, 255, 0.08),
+          transparent 38%
+        ),
+        var(--bg);
+      color: var(--text);
+      font: 16px/1.65 var(--sans);
+    }
+
+    button,
+    select,
+    textarea {
+      font-family: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    ::selection {
+      background: rgba(58, 209, 255, 0.25);
+    }
+
+    /* =========================================================
+       APP SHELL
+       ========================================================= */
+
+    .app {
+      width: min(1180px, 100%);
+      min-height: 100vh;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      padding: 24px 14px;
+      border-inline-end: 1px solid var(--line);
+      background: rgba(7, 11, 20, 0.78);
+      backdrop-filter: blur(14px);
+      z-index: 10;
+    }
+
+    .brand {
+      padding: 4px 10px 22px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0;
+      color: var(--text);
+      font: 800 19px/1 var(--mono);
+      letter-spacing: 0.4px;
+    }
+
+    .logo-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--cyan);
+      box-shadow: 0 0 18px var(--cyan-glow);
+    }
+
+    .brand small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+
+    #nav {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    #nav button {
+      all: unset;
+      width: 100%;
+      box-sizing: border-box;
+      cursor: pointer;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease;
+    }
+
+    #nav button:hover:not(:disabled) {
+      background: var(--panel);
+      color: var(--text);
+      border-color: var(--line-soft);
+    }
+
+    #nav button.on {
+      color: var(--cyan);
+      background: var(--cyan-soft);
+      border-color: rgba(58, 209, 255, 0.18);
+      box-shadow: inset 3px 0 0 var(--cyan);
+    }
+
+    #nav button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* =========================================================
+       MAIN
+       ========================================================= */
+
+    main {
+      min-width: 0;
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 30px 30px 80px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    h1 {
+      margin: 0.2em 0 0.35em;
+      font-size: clamp(30px, 5vw, 46px);
+      line-height: 1.12;
+    }
+
+    h2 {
+      margin: 0.2em 0 0.45em;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    p {
+      margin-top: 0.5em;
+    }
+
+    .m {
+      color: var(--muted);
+      margin: 0.35em 0 1.1em;
+    }
+
+    .hero {
+      padding: 30px 0 12px;
+    }
+
+    .hero h1 {
+      max-width: 760px;
+    }
+
+    .hero-copy {
+      max-width: 680px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    /* =========================================================
+       HUD
+       ========================================================= */
+
+    #hud {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+
+      width: 100%;
+
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+
+      padding: 10px 20px;
+
+      background: rgba(7, 11, 20, 0.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .hl {
+      color: var(--cyan);
+      font: 700 14px var(--mono);
+      letter-spacing: 1px;
+    }
+
+    .stp {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      gap: 5px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .stp::-webkit-scrollbar {
+      display: none;
+    }
+
+    .st {
+      flex: 0 0 auto;
+
+      padding: 6px 10px;
+
+      border: 1px solid var(--line);
+      border-radius: 7px;
+
+      background: transparent;
+      color: var(--muted);
+
+      cursor: pointer;
+
+      font: 600 11px var(--mono);
+      white-space: nowrap;
+
+      transition:
+        color 0.18s ease,
+        border-color 0.18s ease,
+        background 0.18s ease;
+    }
+
+    .st:hover:not(:disabled) {
+      color: var(--text);
+      border-color: #3a4968;
+    }
+
+    .st.cur {
+      color: var(--cyan);
+      border-color: var(--cyan);
+      background: var(--cyan-soft);
+      box-shadow: 0 0 14px rgba(58, 209, 255, 0.08);
+    }
+
+    .st.dn {
+      color: var(--success);
+      border-color: rgba(46, 229, 157, 0.35);
+    }
+
+    .st:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .mt {
+      min-width: 72px;
+      text-align: right;
+    }
+
+    .mt small {
+      display: block;
+      color: var(--muted);
+      font: 600 10px var(--mono);
+      letter-spacing: 0.5px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+
+      padding: 4px 9px;
+
+      border: 1px solid currentColor;
+      border-radius: 999px;
+
+      font: 700 10px/1 var(--sans);
+      letter-spacing: 0.7px;
+    }
+
+    .sound-btn {
+      min-width: 36px;
+      padding: 7px 9px;
+    }
+
+    .pr {
+      flex-basis: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+    }
+
+    .pr .bar {
+      flex: 1;
+      margin: 0;
+      height: 5px;
+    }
+
+    /* =========================================================
+       PROGRESS / BARS
+       ========================================================= */
+
+    .bar {
+      width: 100%;
+      height: 8px;
+
+      overflow: hidden;
+
+      background: var(--line-soft);
+      border-radius: 999px;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: var(--cyan);
+      border-radius: inherit;
+      transition: width 0.35s ease;
+    }
+
+    /* =========================================================
+       CARDS
+       ========================================================= */
+
+    .card {
+      display: block;
+
+      margin: 12px 0;
+      padding: 17px 18px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.015),
+          transparent
+        ),
+        var(--panel);
+
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+
+      box-shadow: 0 2px 0 rgba(255, 255, 255, 0.01);
+
+      transition:
+        border-color 0.18s ease,
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+
+    .card:hover {
+      border-color: #344565;
+    }
+
+    .card.okb {
+      border-color: rgba(46, 229, 157, 0.45);
+      background:
+        linear-gradient(
+          135deg,
+          rgba(46, 229, 157, 0.045),
+          transparent
+        ),
+        var(--panel);
+    }
+
+    .card.badb {
+      border-color: rgba(255, 59, 92, 0.45);
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255, 59, 92, 0.045),
+          transparent
+        ),
+        var(--panel);
+    }
+
+    .card.dng {
+      border-color: rgba(255, 59, 92, 0.55);
+      box-shadow: 0 0 20px rgba(255, 59, 92, 0.07);
+    }
+
+    .card.sfe {
+      border-color: rgba(46, 229, 157, 0.42);
+    }
+
+    .card.wnc {
+      border-color: rgba(255, 176, 32, 0.50);
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255, 176, 32, 0.045),
+          transparent
+        ),
+        var(--panel);
+    }
+
+    /* =========================================================
+       MAYA
+       ========================================================= */
+
+    .maya {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin: 0 0 20px;
+    }
+
+    .maya i {
+      flex: none;
+
+      width: 38px;
+      height: 38px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 11px;
+
+      background: var(--cyan);
+      color: var(--bg);
+
+      font: 800 15px var(--sans);
+
+      box-shadow: 0 0 18px rgba(58, 209, 255, 0.12);
+    }
+
+    .maya div {
+      flex: 1;
+
+      padding: 10px 14px;
+
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px 14px 14px 14px;
+    }
+
+    .maya small {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* =========================================================
+       STATUS / LABELS
+       ========================================================= */
+
+    .siren {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+
+      padding: 5px 10px;
+
+      border: 1px solid rgba(255, 59, 92, 0.35);
+      border-radius: 999px;
+
+      background: var(--danger-soft);
+      color: #ff7189;
+
+      font: 700 10px var(--mono);
+      letter-spacing: 0.8px;
+    }
+
+    .t {
+      color: var(--cyan);
+      font: 700 12px var(--mono);
+      letter-spacing: 0.4px;
+    }
+
+    .ok {
+      color: var(--success);
+    }
+
+    .bad {
+      color: var(--danger);
+    }
+
+    .warning {
+      color: var(--warning);
+    }
+
+    /* =========================================================
+       BUTTONS
+       ========================================================= */
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 0;
+    }
+
+    .ev,
+    .b,
+    .go {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .ev,
+    .b {
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+
+      transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+    }
+
+    .b {
+      padding: 8px 13px;
+      font-size: 13px;
+    }
+
+    .b:hover:not(:disabled),
+    .ev:hover:not(:disabled) {
+      border-color: #3a4968;
+      background: var(--panel-2);
+    }
+
+    .b.sel,
+    .ev.sel {
+      color: var(--cyan);
+      border-color: var(--cyan);
+      background: var(--cyan-soft);
+    }
+
+    .ev {
+      padding: 12px 14px;
+      text-align: start;
+    }
+
+    .ev.wide {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+    }
+
+    .ev .et {
+      display: block;
+      font-weight: 700;
+    }
+
+    .ev small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .ev.seen {
+      border-style: dashed;
+    }
+
+    .ev.okb {
+      border-color: rgba(46, 229, 157, 0.55);
+    }
+
+    .ev.badb {
+      border-color: rgba(255, 59, 92, 0.55);
+    }
+
+    .ev em {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-style: normal;
+    }
+
+    .go {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+
+      margin-top: 15px;
+      padding: 12px 18px;
+
+      color: #041019;
+      background: var(--cyan);
+
+      border: 1px solid var(--cyan);
+      border-radius: var(--radius-sm);
+
+      font-weight: 800;
+
+      transition:
+        transform 0.15s ease,
+        filter 0.15s ease;
+    }
+
+    .go:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    button:disabled {
+      opacity: 0.48;
+      cursor: default;
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    /* =========================================================
+       GRID
+       ========================================================= */
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(220px, 1fr)
+      );
+      gap: 10px;
+    }
+
+    /* =========================================================
+       LOG / TERMINAL WINDOWS
+       ========================================================= */
+
+    .win {
+      margin: 14px 0;
+
+      overflow: hidden;
+
+      background: var(--panel-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+
+      box-shadow: var(--shadow);
+    }
+
+    .win > * {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .wb {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+
+      padding-top: 9px !important;
+      padding-bottom: 9px !important;
+
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--line);
+
+      color: var(--muted);
+
+      font: 600 11px var(--mono);
+    }
+
+    .wb i {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .wb i:first-child {
+      background: var(--danger);
+    }
+
+    .wb i:nth-child(2) {
+      background: var(--warning);
+    }
+
+    .tm {
+      color: var(--cyan);
+    }
+
+    pre {
+      margin: 7px 0;
+
+      white-space: pre-wrap;
+      word-break: break-word;
+
+      color: #c9d4e9;
+
+      font: 12px/1.7 var(--mono);
+      text-align: left;
+      direction: ltr;
+    }
+
+    /* =========================================================
+       EVIDENCE LINES
+       ========================================================= */
+
+    .ln {
+      display: block;
+
+      padding: 3px 8px;
+
+      border-left: 3px solid transparent;
+      border-radius: 3px;
+
+      cursor: pointer;
+
+      transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+    }
+
+    .ln:hover {
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .ln.fl {
+      background: var(--warning-soft);
+      border-color: var(--warning);
+    }
+
+    .ln.okl {
+      background: var(--success-soft);
+      border-color: var(--success);
+    }
+
+    .ln.badl {
+      background: var(--danger-soft);
+      border-color: var(--danger);
+      text-decoration: line-through;
+      opacity: 0.75;
+    }
+
+    .ln.miss {
+      border-color: var(--danger);
+      border-style: dashed;
+    }
+
+    /* =========================================================
+       CHAIN / CONNECT THE CLUES
+       ========================================================= */
+
+    .chain {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+
+      margin: 0 0 18px;
+      padding: 12px;
+
+      background: var(--panel-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .nd {
+      padding: 6px 10px;
+
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .lk {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .lk.wn {
+      color: var(--warning);
+    }
+
+    .lk.ok {
+      color: var(--success);
+    }
+
+    .lk.bad {
+      color: var(--danger);
+    }
+
+    /* =========================================================
+       TIMELINE
+       ========================================================= */
+
+    .tl {
+      display: grid;
+      grid-template-columns: 70px 1fr auto;
+      gap: 13px;
+      align-items: center;
+
+      cursor: grab;
+    }
+
+    .tl:active {
+      cursor: grabbing;
+    }
+
+    .tl > span:nth-child(2) {
+      min-width: 0;
+    }
+
+    .ar {
+      display: flex;
+      gap: 4px;
+    }
+
+    .ar .b {
+      min-width: 34px;
+      padding: 4px 8px;
+    }
+
+    /* =========================================================
+       HINTS
+       ========================================================= */
+
+    .hint {
+      margin: 0 0 14px;
+    }
+
+    .hint div {
+      margin-bottom: 7px;
+      padding: 8px 11px;
+
+      background: var(--cyan-soft);
+      border-left: 3px solid var(--cyan);
+      border-radius: 6px;
+
+      color: #c7dff0;
+      font-size: 13px;
+    }
+
+    .hint .b {
+      background: transparent;
+    }
+
+    /* =========================================================
+       FORM ELEMENTS
+       ========================================================= */
+
+    select,
+    textarea {
+      width: 100%;
+
+      margin-top: 7px;
+      padding: 10px 12px;
+
+      background: var(--bg-soft);
+      color: var(--text);
+
+      border: 1px solid var(--line);
+      border-radius: 9px;
+
+      font: inherit;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    textarea::placeholder {
+      color: #5f6d87;
+    }
+
+    /* =========================================================
+       SCORE
+       ========================================================= */
+
+    .xp {
+      margin: 8px 0 4px;
+
+      color: var(--cyan);
+      font: 800 clamp(42px, 8vw, 60px)/1 var(--mono);
+
+      text-shadow: 0 0 20px rgba(58, 209, 255, 0.12);
+    }
+
+    .sc {
+      display: flex;
+      justify-content: space-between;
+
+      margin-top: 14px;
+
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+
+      margin: 5px 6px 5px 0;
+      padding: 6px 10px;
+
+      border: 1px solid var(--cyan);
+      border-radius: 999px;
+
+      color: var(--cyan);
+      background: var(--cyan-soft);
+
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .badge.off {
+      opacity: 0.35;
+      color: var(--muted);
+      border-color: var(--line);
+      background: transparent;
+    }
+
+    /* =========================================================
+       LEGEND
+       ========================================================= */
+
+    .lg {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+
+      margin: 0 0 12px;
+
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .d {
+      display: inline-block;
+
+      width: 9px;
+      height: 9px;
+
+      margin-inline-end: 5px;
+
+      border-radius: 50%;
+    }
+
+    .d.r {
+      background: var(--danger);
+    }
+
+    .d.a {
+      background: var(--warning);
+    }
+
+    .d.g {
+      background: var(--success);
+    }
+
+    /* =========================================================
+       SPLASH
+       ========================================================= */
+
+    #splash {
+      position: relative;
+      z-index: 50;
+    }
+
+    .splash {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 24px;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(58, 209, 255, 0.08),
+          transparent 35%
+        ),
+        #070b14;
+
+      text-align: center;
+
+      animation: splashInOut 1.5s forwards;
+    }
+
+    .splash small {
+      display: block;
+
+      margin-bottom: 12px;
+
+      color: var(--muted);
+
+      font: 700 11px var(--mono);
+      letter-spacing: 4px;
+    }
+
+    .splash b {
+      display: block;
+
+      color: var(--cyan);
+
+      font: 800 clamp(38px, 9vw, 76px)/1 var(--mono);
+
+      text-shadow:
+        0 0 24px rgba(58, 209, 255, 0.35);
+    }
+
+    .splash span {
+      display: block;
+      margin-top: 12px;
+      color: var(--muted);
+    }
+
+    @keyframes splashInOut {
+      0% {
+        opacity: 0;
+      }
+
+      12% {
+        opacity: 1;
+      }
+
+      80% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+
+    /* =========================================================
+       SHAKE
+       ========================================================= */
+
+    @media (prefers-reduced-motion: no-preference) {
+      .shk main {
+        animation: shake 0.35s;
+      }
+
+      @keyframes shake {
+        20% {
+          transform: translateX(-6px);
+        }
+
+        40% {
+          transform: translateX(6px);
+        }
+
+        60% {
+          transform: translateX(-4px);
+        }
+
+        80% {
+          transform: translateX(4px);
+        }
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* =========================================================
+       MOBILE
+       ========================================================= */
+
+    @media (max-width: 820px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: sticky;
+        top: 0;
+
+        width: 100%;
+        height: auto;
+
+        padding: 10px 12px;
+
+        border-inline-end: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        padding: 2px 4px 9px;
+      }
+
+      .brand small {
+        display: none;
+      }
+
+      #nav {
+        flex-direction: row;
+        gap: 5px;
+
+        overflow-x: auto;
+
+        scrollbar-width: none;
+      }
+
+      #nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      #nav button {
+        width: auto;
+        flex: 0 0 auto;
+
+        white-space: nowrap;
+        padding: 8px 11px;
+
+        border-radius: 8px;
+      }
+
+      #nav button.on {
+        box-shadow: inset 0 -3px 0 var(--cyan);
+      }
+
+      main {
+        max-width: none;
+        padding: 22px 16px 60px;
+      }
+
+      #hud {
+        position: sticky;
+        top: 73px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .logo2 {
+        display: none;
+      }
+
+      #hud {
+        gap: 8px;
+        padding: 8px 12px;
+      }
+
+      .mt {
+        min-width: auto;
+      }
+
+      .st {
+        padding: 6px 8px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 15px;
+      }
+
+      .tl {
+        grid-template-columns: 58px 1fr;
+      }
+
+      .tl .ar {
+        grid-column: 2;
+      }
+
+      .hero {
+        padding-top: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app">
+
+    <aside id="sidebar">
+      <div class="brand">
+        <div class="logo">
+          <span class="logo-mark"></span>
+          CYBERTRACE
+        </div>
+
+        <small>
+          Cybersecurity Investigation Game
+        </small>
+      </div>
+
+      <nav id="nav"></nav>
+    </aside>
+
+    <section style="min-width:0;">
+      <header id="hud"></header>
+      <main id="main"></main>
+    </section>
+
+  </div>
+
+  <div id="splash"></div>
+
+  <script>
+    /* =========================================================
+       HELPERS
+       ========================================================= */
+
+    const $ = (selector) => document.querySelector(selector);
+
+    const pc = (a, b) => {
+      if (!b) return 0;
+      return Math.round((a / b) * 100);
+    };
+
+    const bar = (p) => `
+      <div class="bar">
+        <i style="width:${Math.max(0, Math.min(100, p))}%"></i>
+      </div>
+    `;
+
+    const esc = (text) =>
+      String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const mk = () => ({
+      v: "home",
+
+      found: new Set(),
+      max: 0,
+
+      sp: null,
+
+      tl: null,
+
+      hn: {},
+
+      q: {
+        clues: {},
+        attack: {}
+      },
+
+      pen: 0,
+
+      notes: "",
+      sum: "",
+      why: "",
+
+      fl: new Set(),
+      seen: new Set(),
+
+      open: null,
+
+      al: {},
+
+      ord: [],
+
+      ans: {},
+
+      resp: new Set(),
+
+      rep: {},
+
+      done: {},
+      res: {},
+
+      bad: false
+    });
+
+    let S = mk();
+
+    let AC = null;
+    let mute = false;
+    let dg = null;
+
+    /* =========================================================
+       STAGES
+       ========================================================= */
+
+    const V = [
+      ["brief", "Brief"],
+      ["alerts", "Alerts"],
+      ["evidence", "Evidence"],
+      ["clues", "Connect"],
+      ["timeline", "Timeline"],
+      ["attack", "ATT&CK"],
+      ["response", "Response"],
+      ["report", "Report"],
+      ["score", "Score"]
+    ];
+
+    const TAG = {
+      brief: "Understand the incident.",
+      alerts: "Separate real threats from normal activity.",
+      evidence: "Find the clues.",
+      clues: "Connect the evidence.",
+      timeline: "Rebuild what happened.",
+      attack: "Learn the attacker techniques.",
+      response: "Contain the incident.",
+      report: "Explain your investigation.",
+      score: "Case closed."
+    };
+
+    const vi = (key) =>
+      V.findIndex((v) => v[0] === key);
+
+    /* =========================================================
+       CASE DATA
+       ========================================================= */
+
+    const AL = [
+      {
+        t: "Yesterday 08:02",
+        x:
+          "12 failed logins\n" +
+          "user: omar.k  from: WS-017 (office computer)\n" +
+          "Note: he asked IT to reset his password at 08:00",
+        k: "b",
+        w:
+          "Normal: he forgot his password and asked IT to reset it. " +
+          "Failed logins are expected. This is a false alarm."
+      },
+
+      {
+        t: "01:59",
+        x:
+          "Someone logged in remotely (VPN)\n" +
+          "user: sarah.m  from: 203.0.113.45 " +
+          "(a country she never uses)",
+        k: "s",
+        w:
+          "Dangerous: someone logged in from a strange country " +
+          "in the middle of the night."
+      },
+
+      {
+        t: "02:11",
+        x:
+          "A hidden, scrambled command ran\n" +
+          "computer: WS-042  user: sarah.m",
+        k: "s",
+        w:
+          "Dangerous: a hidden, scrambled command is how attackers " +
+          "can run code without being noticed."
+      },
+
+      {
+        t: "02:17",
+        x:
+          "A computer called an outside website\n" +
+          "WS-042 -> nimbus-cdn-update.example",
+        k: "s",
+        w:
+          "Dangerous: the computer is talking to an unknown website " +
+          "pretending to be an update."
+      },
+
+      {
+        t: "03:30",
+        x:
+          "Antivirus update failed\n" +
+          "computer: SRV-DB",
+        k: "b",
+        w:
+          "Normal: IT was doing planned maintenance at that time."
+      }
+    ];
+
+    const E = [
+      {
+        h: [0, 1, 3, 4],
+        d:
+          "What do you notice? The email Sarah got, " +
+          "and what she did next.",
+        n: "Phishing Email",
+        i: "✉️",
+        k: 1,
+        x:
+          "From:     IT Support <it-support@nimbus-secure-login.example>\n" +
+          "Subject:  Password expires today!\n" +
+          "Sent:     Yesterday 23:40\n" +
+          "Link:     hxxp://nimbus-secure-login.example/reset\n" +
+          "01:45     Sarah typed her password on that page"
+      },
+
+      {
+        h: [0, 1, 2, 3],
+        d:
+          "What do you notice? Who logged in, when, " +
+          "and from where.",
+        n: "Login Records",
+        i: "🔐",
+        k: 1,
+        x:
+          "01:59  sarah.m logged in remotely\n" +
+          "       from 203.0.113.45 (a country she never uses)\n" +
+          "02:04  sarah.m mailbox opened from the same address\n" +
+          "02:07  A remote session opened to WS-042 (her computer)\n" +
+          "Usual working hours: 08:00 to 16:00"
+      },
+
+      {
+        h: [0, 2],
+        d:
+          "What do you notice? What ran on computer WS-042.",
+        n: "Computer Activity (WS-042)",
+        i: "💻",
+        k: 1,
+        x:
+          "02:11  A hidden, scrambled PowerShell command ran\n" +
+          "       (powershell.exe -w hidden -enc ...)\n" +
+          "02:12  A file was downloaded from nimbus-cdn-update.example"
+      },
+
+      {
+        h: [0, 2],
+        d:
+          "What do you notice? Who the computer talked to, " +
+          "and how much data it sent.",
+        n: "Network Activity",
+        i: "🌐",
+        k: 1,
+        x:
+          "02:17  WS-042 began calling 198.51.100.77 every 60 seconds\n" +
+          "       (nimbus-cdn-update.example)\n" +
+          "02:21  WS-042 sent 1.8 GB to that address"
+      },
+
+      {
+        h: [0, 1, 2],
+        d:
+          "What do you notice? What experts already know " +
+          "about these addresses.",
+        n: "Threat Intelligence",
+        i: "🧠",
+        k: 1,
+        x:
+          "nimbus-secure-login.example: new website, flagged as phishing\n" +
+          "nimbus-cdn-update.example: new website, flagged as malicious\n" +
+          "203.0.113.45: seen in other phishing attacks"
+      },
+
+      {
+        h: [],
+        d: "What do you notice? Printer messages.",
+        n: "Printer Log",
+        i: "🖨️",
+        k: 0,
+        x:
+          "PR-02: low toner warning\n" +
+          "09:12  3 print jobs queued"
+      },
+
+      {
+        h: [],
+        d: "What do you notice? Planned work by the IT team.",
+        n: "Maintenance Calendar",
+        i: "🗓️",
+        k: 0,
+        x:
+          "Change #881: planned server maintenance 03:00 to 04:00\n" +
+          "Expected: antivirus update may fail once"
+      }
+    ];
+
+    const T = [
+      {
+        t: "01:45",
+        x: "Sarah submits her password on the fake reset page"
+      },
+
+      {
+        t: "01:59",
+        x: "Successful VPN login from an unfamiliar IP"
+      },
+
+      {
+        t: "02:04",
+        x: "Mailbox accessed from the same IP"
+      },
+
+      {
+        t: "02:11",
+        x: "Encoded PowerShell runs on WS-042"
+      },
+
+      {
+        t: "02:17",
+        x: "WS-042 starts beaconing to the suspicious domain"
+      },
+
+      {
+        t: "02:21",
+        x: "1.8 GB leaves the network"
+      }
+    ];
+
+    const QI = {
+      clues: [
+        {
+          x: "How did the attacker get Sarah's password?",
+          o: [
+            "The attacker guessed it many times",
+            "She typed it on the fake page from the phishing email",
+            "The printer leaked it"
+          ],
+          c: 1,
+          w:
+            "The email sent her to a fake page, and the record " +
+            "shows she typed her password there at 01:45."
+        },
+
+        {
+          x:
+            "How do we know the 01:59 login was the attacker?",
+          o: [
+            "It came from the office at 08:00",
+            "It used a USB drive",
+            "It came from an address seen in other phishing attacks, at an hour she never works"
+          ],
+          c: 2,
+          w:
+            "Strange place, strange hour, and a known bad address. " +
+            "Small clues make a big warning."
+        },
+
+        {
+          x:
+            "What links that login to computer WS-042?",
+          o: [
+            "A remote session to WS-042 opened right after the login",
+            "WS-042 was being repaired",
+            "Sarah was printing"
+          ],
+          c: 0,
+          w:
+            "The attacker used her account to reach her own computer."
+        },
+
+        {
+          x:
+            "How do we know WS-042 sent data to the attacker?",
+          o: [
+            "The antivirus update failed",
+            "It called the same flagged website every 60 seconds, then sent 1.8 GB",
+            "The printer queue was full"
+          ],
+          c: 1,
+          w:
+            "The repeated calls and the big transfer both go " +
+            "to the flagged server."
+        }
+      ],
+
+      attack: [
+        {
+          x:
+            "The attacker sent an email with a link to a fake password page.",
+          o: [
+            "Guessed passwords again and again",
+            "Tricked a person with a fake message",
+            "Broke in through a website bug"
+          ],
+          c: 1,
+          w:
+            "A fake message that tricks someone into giving up a password.",
+          l: ["Phishing", "T1566"]
+        },
+
+        {
+          x:
+            "The attacker logged in with Sarah's real password.",
+          o: [
+            "Created a new secret account",
+            "Guessed passwords again and again",
+            "Used a real stolen account"
+          ],
+          c: 2,
+          w:
+            "No hacking needed. The attacker simply used a real account.",
+          l: ["Valid Accounts", "T1078"]
+        },
+
+        {
+          x:
+            "A hidden, scrambled command ran on WS-042.",
+          o: [
+            "Ran commands with PowerShell",
+            "Locked files for ransom",
+            "Recorded keystrokes"
+          ],
+          c: 0,
+          w:
+            "PowerShell is a built-in Windows tool that attackers often abuse.",
+          l: ["PowerShell", "T1059.001"]
+        },
+
+        {
+          x:
+            "The computer called the same outside server every 60 seconds.",
+          o: [
+            "Deleted data",
+            "Phoned home to the attacker (C2)",
+            "Shut down services"
+          ],
+          c: 1,
+          w:
+            "Malware can regularly check in with its operator " +
+            "to receive instructions.",
+          l: ["Command and Control", "T1071"]
+        },
+
+        {
+          x:
+            "1.8 GB left the network through that same connection.",
+          o: [
+            "Locked files for ransom",
+            "Moved to a second computer",
+            "Stole data through the attacker channel"
+          ],
+          c: 2,
+          w:
+            "Data was sent out over the channel the attacker already controlled.",
+          l: ["Exfiltration over C2", "T1041"]
+        }
+      ]
+    };
+
+    const R = [
+      {
+        n: "Lock the sarah.m account and reset her password",
+        s: "High",
+        b: "Medium",
+        e: "High",
+        p: 20,
+        w: "Cuts off attacker access through the stolen account."
+      },
+
+      {
+        n: "Cut WS-042 off from the network",
+        s: "High",
+        b: "High",
+        e: "High",
+        p: 20,
+        w:
+          "Stops C2 and data theft while the evidence stays on the machine."
+      },
+
+      {
+        n: "Block the attacker websites and IPs",
+        s: "High",
+        b: "Low",
+        e: "High",
+        p: 20,
+        w:
+          "Cuts the attacker infrastructure at relatively low cost."
+      },
+
+      {
+        n: "Save the evidence (logs and a copy of memory)",
+        s: "Medium",
+        b: "Low",
+        e: "High",
+        p: 15,
+        w:
+          "Essential for the investigation and the final report."
+      },
+
+      {
+        n: "Check if other people or computers were hit too",
+        s: "Medium",
+        b: "Low",
+        e: "High",
+        p: 10,
+        w:
+          "Other accounts may have received the same email."
+      },
+
+      {
+        n: "Tell the incident response lead",
+        s: "Medium",
+        b: "Low",
+        e: "High",
+        p: 10,
+        w:
+          "A high-severity incident needs escalation and management decisions."
+      },
+
+      {
+        n: "Wipe WS-042 right now",
+        s: "Medium",
+        b: "High",
+        e: "Destroyed",
+        p: -15,
+        w:
+          "Destroys evidence before it is collected. Reimaging comes later."
+      },
+
+      {
+        n: "Shut down the entire company network",
+        s: "High",
+        b: "Very high",
+        e: "Medium",
+        p: -20,
+        w:
+          "Creates far more business disruption than necessary."
+      },
+
+      {
+        n: "Close the case: it is a false alarm",
+        s: "None",
+        b: "None",
+        e: "Lost",
+        p: -25,
+        w:
+          "The evidence clearly shows this is a real attack."
+      }
+    ];
+
+    const F = [
+      {
+        n: "What kind of incident was it?",
+        o: [
+          "Ransomware",
+          "Credential Compromise",
+          "Denial of Service",
+          "Insider Misuse"
+        ],
+        c: 1
+      },
+
+      {
+        n: "How did the attacker get in?",
+        o: [
+          "Exploited web server bug",
+          "Brute force on VPN",
+          "Phishing + Valid Accounts",
+          "Infected USB drive"
+        ],
+        c: 2
+      },
+
+      {
+        n: "Which computer was hit?",
+        o: [
+          "SRV-DB",
+          "WS-017",
+          "PR-02",
+          "WS-042"
+        ],
+        c: 3
+      },
+
+      {
+        n: "How serious is it?",
+        o: [
+          "Informational",
+          "Low",
+          "Medium",
+          "High"
+        ],
+        c: 3
+      }
+    ];
+
+    /* =========================================================
+       PRE / HINTS
+       ========================================================= */
+
+    const PRE = {
+      brief:
+        "Hi, I am Maya, your team lead. Something is wrong tonight. " +
+        "Let us find out what.",
+
+      alerts:
+        "These alerts just came in. Some are real attacks. " +
+        "Some are just normal work.",
+
+      evidence:
+        "Now look at the proof. Open each file and tap the lines " +
+        "that look like part of the attack.",
+
+      clues:
+        "Now connect the dots. Each link in the chain needs a clue " +
+        "you actually found.",
+
+      timeline:
+        "Put the events in the order they happened. Drag them, " +
+        "or use the arrows.",
+
+      attack:
+        "What did the attacker use? Pick the plain description. " +
+        "You will learn the official name afterwards.",
+
+      response:
+        "The attacker may still be inside. Pick your moves. " +
+        "Each one has a consequence.",
+
+      report:
+        "Almost done. Answer the final questions so everyone knows " +
+        "what happened.",
+
+      score:
+        "Case closed. Here is your investigation summary."
+    };
+
+    const HINTS = {
+      alerts: [
+        "Think about who it was and when it happened.",
+        "Failed logins right after a password-reset request are normal.",
+        "A login at night from a new country does not fit a normal workday."
+      ],
+
+      evidence: [
+        "Start with the email and the login records.",
+        "Flag lines with strange websites, strange times, or hidden commands.",
+        "The same suspicious IP and website show up in more than one file."
+      ],
+
+      clues: [
+        "Each link needs a clue from the evidence you collected.",
+        "Look for the same IP, website, user, device, or time in more than one file.",
+        "The right answer always points to something you actually saw."
+      ],
+
+      timeline: [
+        "An attack has to start somewhere. What was the very first thing?",
+        "The attacker needs a password before they can log in.",
+        "Stealing the data comes last."
+      ],
+
+      attack: [
+        "Read the behavior slowly. What is the attacker trying to do?",
+        "Think of it as a verb: tricks, logs in, runs commands, phones home, steals.",
+        "Pick the plain description. The technical name comes after."
+      ],
+
+      response: [
+        "Stop the attack first, then clean up.",
+        "Do not destroy evidence you still need.",
+        "Three actions directly cut the attacker off: the account, the computer, and the destination."
+      ]
+    };
+
+    /* =========================================================
+       NAVIGATION
+       ========================================================= */
+
+    function go(k) {
+      if (vi(k) > S.max) return;
+
+      S.v = k;
+      draw();
+    }
+
+    function adv(k) {
+      sfx("go");
+
+      S.max = Math.max(S.max, vi(k));
+      S.v = k;
+      S.sp = k;
+
+      draw();
+
+      clearTimeout(adv.t);
+
+      adv.t = setTimeout(() => {
+        S.sp = null;
+        $("#splash").innerHTML = "";
+      }, 1500);
+    }
+
+    function next(k) {
+      return `
+        <button class="go" onclick="adv('${k}')">
+          Continue →
+        </button>
+      `;
+    }
+
+    /* =========================================================
+       SPLASH
+       ========================================================= */
+
+    function splash() {
+      const i = vi(S.sp);
+
+      return `
+        <div
+          class="splash"
+          onclick="S.sp=null;this.remove()"
+        >
+          <div>
+            <small>
+              ${S.sp === "score" ? "FINAL" : `STAGE 0${i}`}
+            </small>
+
+            <b>${esc(V[i][1])}</b>
+
+            <span>
+              ${esc(TAG[S.sp])}
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    /* =========================================================
+       SOUND
+       ========================================================= */
+
+    function sfx(type) {
+      if (type === "bad") {
+        document.body.classList.remove("shk");
+        void document.body.offsetWidth;
+        document.body.classList.add("shk");
+      }
+
+      if (mute) return;
+
+      try {
+        AC =
+          AC ||
+          new (
+            window.AudioContext ||
+            window.webkitAudioContext
+          )();
+
+        const data = {
+          click: [520, 0.05],
+          good: [880, 0.20],
+          bad: [140, 0.30],
+          go: [330, 0.30]
+        }[type];
+
+        if (!data) return;
+
+        const oscillator = AC.createOscillator();
+        const gain = AC.createGain();
+
+        oscillator.type =
+          type === "bad" ? "sawtooth" : "sine";
+
+        oscillator.frequency.value = data[0];
+
+        gain.gain.setValueAtTime(
+          0.055,
+          AC.currentTime
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+          0.001,
+          AC.currentTime + data[1]
+        );
+
+        oscillator.connect(gain);
+        gain.connect(AC.destination);
+
+        oscillator.start();
+
+        oscillator.stop(
+          AC.currentTime + data[1]
+        );
+      } catch (e) {
+        /* Audio is optional. */
+      }
+    }
+
+    /* =========================================================
+       THREAT / HUD
+       ========================================================= */
+
+    function threat() {
+      const has = (i) => S.resp.has(i);
+
+      if (S.done.response) {
+        const contained =
+          [0, 1, 2].every(has) && !S.bad;
+
+        return contained
+          ? ["Low", "var(--success)", "Contained"]
+          : [
+              "Critical",
+              "var(--danger)",
+              "Active threat"
+            ];
+      }
+
+      if (S.done.evidence) {
+        return [
+          "Critical",
+          "var(--danger)",
+          "Confirmed incident"
+        ];
+      }
+
+      if (S.done.alerts) {
+        return [
+          "Elevated",
+          "var(--warning)",
+          "Multiple suspicious clues"
+        ];
+      }
+
+      return [
+        "Low",
+        "var(--success)",
+        "Not enough evidence yet"
+      ];
+    }
+
+    function xpOf() {
+      const total = Object.values(S.res)
+        .reduce(
+          (a, b) => a + (Number(b) || 0),
+          0
+        );
+
+      return Math.max(
+        0,
+        Math.round(total * 0.65) - S.pen
+      );
+    }
+
+    function hud() {
+      const xp = xpOf();
+      const th = threat();
+
+      const completed = [
+        "alerts",
+        "evidence",
+        "clues",
+        "timeline",
+        "attack",
+        "response",
+        "report"
+      ].filter((k) => S.done[k]).length;
+
+      const pg = pc(completed, 7);
+
+      return `
+        <span class="hl logo2">
+          CYBERTRACE
+        </span>
+
+        <div class="stp">
+          ${V.map(([k, label], i) => `
+            <button
+              class="st
+                ${S.v === k ? "cur" : ""}
+                ${S.done[k] ? "dn" : ""}
+              "
+              ${i > S.max ? "disabled" : ""}
+              onclick="go('${k}')"
+            >
+              ${i > S.max ? "🔒" : esc(label)}
+            </button>
+          `).join("")}
+        </div>
+
+        <div class="mt">
+          <small>CASE #001</small>
+
+          <b
+            class="pill"
+            style="color:${th[1]}"
+            title="${esc(th[2])}"
+          >
+            ● ${th[0].toUpperCase()}
+          </b>
+        </div>
+
+        <div class="mt">
+          <small>XP</small>
+          <b class="hl">${xp}</b>
+        </div>
+
+        <button
+          class="st sound-btn"
+          onclick="mute=!mute;draw(1)"
+          aria-label="Toggle sound"
+        >
+          ${mute ? "🔇" : "🔊"}
+        </button>
+
+        <div class="pr">
+          <span>INVESTIGATION PROGRESS</span>
+
+          <div class="bar">
+            <i style="width:${pg}%"></i>
+          </div>
+
+          <b>${pg}%</b>
+        </div>
+      `;
+    }
+
+    /* =========================================================
+       MAYA
+       ========================================================= */
+
+    function maya() {
+      const k = S.v;
+
+      if (k === "home") return "";
+
+      let text = PRE[k];
+
+      if (
+        S.done[k] &&
+        S.res[k] != null
+      ) {
+        const p = S.res[k];
+
+        if (p >= 80) {
+          text = "Strong investigation work on that stage.";
+        } else if (p >= 50) {
+          text =
+            "You caught some important details. " +
+            "The feedback below shows what to revisit.";
+        } else {
+          text =
+            "Take a closer look at the feedback. " +
+            "Mistakes are part of the investigation.";
+        }
+      }
+
+      return `
+        <div class="maya">
+          <i>M</i>
+
+          <div>
+            <small>Maya · Team Lead</small>
+            ${esc(text)}
+          </div>
+        </div>
+      `;
+    }
+
+    /* =========================================================
+       HINTS
+       ========================================================= */
+
+    function hintBox() {
+      const H = HINTS[S.v];
+
+      if (!H || S.done[S.v]) {
+        return "";
+      }
+
+      const n = S.hn[S.v] || 0;
+
+      return `
+        <div class="hint">
+          ${H
+            .slice(0, n)
+            .map(
+              (t, i) => `
+                <div>
+                  💡 Hint ${i + 1}: ${esc(t)}
+                </div>
+              `
+            )
+            .join("")}
+
+          ${
+            n < H.length
+              ? `
+                <button
+                  class="b"
+                  onclick="hint()"
+                >
+                  💡 ${
+                    n
+                      ? "Another hint (-5 XP)"
+                      : "Need a hint? (free)"
+                  }
+                </button>
+              `
+              : ""
+          }
+        </div>
+      `;
+    }
+
+    function hint() {
+      const n = S.hn[S.v] || 0;
+
+      if (n > 0) {
+        S.pen += 5;
+      }
+
+      S.hn[S.v] = n + 1;
+
+      sfx("click");
+      draw(1);
+    }
+
+    /* =========================================================
+       NOTES
+       ========================================================= */
+
+    function notesBox() {
+      if (
+        ![
+          "evidence",
+          "clues",
+          "timeline"
+        ].includes(S.v)
+      ) {
+        return "";
+      }
+
+      return `
+        <label class="card">
+          <b>📝 Analyst Notes</b>
+
+          <span class="m">
+            (optional · only you see them)
+          </span>
+
+          <textarea
+            oninput="S.notes=this.value"
+            rows="3"
+            placeholder="What did you notice? Example: the login happened outside her normal hours."
+          >${esc(S.notes)}</textarea>
+        </label>
+      `;
+    }
+
+    /* =========================================================
+       ALERTS
+       ========================================================= */
+
+    function setA(i, v) {
+      sfx("click");
+
+      S.al[i] = v;
+
+      draw(1);
+    }
+
+    function subAl() {
+      let c = 0;
+
+      AL.forEach((a, i) => {
+        if (S.al[i] === a.k) {
+          c++;
+        }
+      });
+
+      S.res.alerts = pc(c, AL.length);
+      S.done.alerts = true;
+
+      sfx(
+        S.res.alerts >= 70
+          ? "good"
+          : "bad"
+      );
+
+      draw(1);
+    }
+
+    /* =========================================================
+       EVIDENCE
+       ========================================================= */
+
+    function openE(i) {
+      S.open = i;
+      S.seen.add(i);
+
+      sfx("click");
+      draw(1);
+    }
+
+    function flag(i, j) {
+      if (S.done.evidence) return;
+
+      const key = `${i}:${j}`;
+
+      sfx("click");
+
+      if (S.fl.has(key)) {
+        S.fl.delete(key);
+      } else {
+        S.fl.add(key);
+      }
+
+      draw(1);
+    }
+
+    const IOC = E.reduce(
+      (a, e) => a + e.h.length,
+      0
+    );
+
+    function evScore() {
+      let g = 0;
+      let w = 0;
+
+      S.fl.forEach((key) => {
+        const [i, j] = key
+          .split(":")
+          .map(Number);
+
+        if (E[i].h.includes(j)) {
+          g++;
+        } else {
+          w++;
+        }
+      });
+
+      return {
+        g,
+        w,
+        p: Math.max(
+          0,
+          pc(g - w, IOC)
+        )
+      };
+    }
+
+    function lines() {
+      const i = S.open;
+      const done = S.done.evidence;
+
+      return E[i].x
+        .split("\n")
+        .map((line, j) => {
+          const flagged =
+            S.fl.has(`${i}:${j}`);
+
+          const hit =
+            E[i].h.includes(j);
+
+          let cls = "";
+
+          if (done) {
+            if (flagged && hit) {
+              cls = "okl";
+            } else if (flagged) {
+              cls = "badl";
+            } else if (hit) {
+              cls = "miss";
+            }
+          } else if (flagged) {
+            cls = "fl";
+          }
+
+          const safe = esc(line);
+
+          const formatted =
+            safe.replace(
+              /^(\d\d:\d\d)/,
+              '<b class="tm">$1</b>'
+            );
+
+          return `
+            <span
+              class="ln ${cls}"
+              onclick="flag(${i},${j})"
+            >
+              ${formatted || "&nbsp;"}
+            </span>
+          `;
+        })
+        .join("");
+    }
+
+    function subEv() {
+      const score = evScore();
+
+      S.res.evidence = score.p;
+      S.done.evidence = true;
+
+      sfx(
+        score.p >= 70
+          ? "good"
+          : "bad"
+      );
+
+      draw(1);
+    }
+
+    /* =========================================================
+       QUIZZES
+       ========================================================= */
+
+    function pick(k, i, j) {
+      sfx("click");
+
+      S.q[k][i] = j;
+
+      draw(1);
+    }
+
+    function subQ(k) {
+      let c = 0;
+
+      QI[k].forEach((item, i) => {
+        if (
+          S.q[k][i] === item.c
+        ) {
+          c++;
+        }
+      });
+
+      S.res[k] = pc(
+        c,
+        QI[k].length
+      );
+
+      S.done[k] = true;
+
+      sfx(
+        S.res[k] >= 70
+          ? "good"
+          : "bad"
+      );
+
+      draw(1);
+    }
+
+    function quiz(k, title, sub, nx) {
+      const done = S.done[k];
+      const answers = S.q[k];
+      const items = QI[k];
+
+      return `
+        <h2>${esc(title)}</h2>
+
+        <p class="m">
+          ${esc(sub)}
+        </p>
+
+        ${items
+          .map((item, i) => `
+            <div class="card">
+              <b>${esc(item.x)}</b>
+
+              ${item.o
+                .map(
+                  (option, j) => `
+                    <button
+                      class="
+                        ev wide
+                        ${
+                          done
+                            ? (
+                                j === item.c
+                                  ? "okb"
+                                  : answers[i] === j
+                                    ? "badb"
+                                    : ""
+                              )
+                            : (
+                                answers[i] === j
+                                  ? "sel"
+                                  : ""
+                              )
+                        }
+                      "
+                      ${done ? "disabled" : ""}
+                      onclick="pick('${k}',${i},${j})"
+                    >
+                      ${esc(option)}
+                    </button>
+                  `
+                )
+                .join("")}
+
+              ${
+                done
+                  ? `
+                    <p class="${
+                      answers[i] === item.c
+                        ? "ok"
+                        : "bad"
+                    }">
+                      ${
+                        answers[i] === item.c
+                          ? "✔"
+                          : "✘"
+                      }
+                      ${esc(item.w)}
+                    </p>
+
+                    ${
+                      item.l
+                        ? `
+                          <p class="m">
+                            📘 Learn:
+                            <b>${esc(item.l[0])}</b>
+                            <br>
+                            MITRE ATT&CK reference:
+                            <b>${esc(item.l[1])}</b>
+                          </p>
+                        `
+                        : ""
+                    }
+                  `
+                  : ""
+              }
+            </div>
+          `)
+          .join("")}
+
+        ${
+          done
+            ? next(nx)
+            : `
+              <button
+                class="go"
+                ${
+                  Object.keys(answers).length <
+                  items.length
+                    ? "disabled"
+                    : ""
+                }
+                onclick="subQ('${k}')"
+              >
+                Confirm answers
+              </button>
+            `
+        }
+      `;
+    }
+
+    /* =========================================================
+       TIMELINE
+       ========================================================= */
+
+    function mv(a, b) {
+      if (!S.tl) return;
+      if (b < 0 || b >= S.tl.length) return;
+      if (S.done.timeline) return;
+
+      const item =
+        S.tl.splice(a, 1)[0];
+
+      S.tl.splice(b, 0, item);
+
+      sfx("click");
+      draw(1);
+    }
+
+    function subTl() {
+      let c = 0;
+
+      S.tl.forEach((x, p) => {
+        if (x === p) {
+          c++;
+        }
+      });
+
+      S.res.timeline = pc(
+        c,
+        T.length
+      );
+
+      S.done.timeline = true;
+
+      sfx(
+        S.res.timeline >= 70
+          ? "good"
+          : "bad"
+      );
+
+      draw(1);
+    }
+
+    /* =========================================================
+       RESPONSE
+       ========================================================= */
+
+    function togR(i) {
+      if (S.done.response) return;
+
+      if (S.resp.has(i)) {
+        S.resp.delete(i);
+      } else {
+        S.resp.add(i);
+      }
+
+      sfx("click");
+      draw(1);
+    }
+
+    function subR() {
+      let score = 0;
+
+      S.bad = false;
+
+      S.resp.forEach((i) => {
+        score += R[i].p;
+
+        if (R[i].p < 0) {
+          S.bad = true;
+        }
+      });
+
+      S.res.response = Math.max(
+        0,
+        Math.min(
+          100,
+          pc(score, 95)
+        )
+      );
+
+      S.done.response = true;
+
+      sfx(
+        S.res.response >= 70
+          ? "good"
+          : "bad"
+      );
+
+      draw(1);
+    }
+
+    /* =========================================================
+       RESPONSE OUTCOME
+       ========================================================= */
+
+    function outcome() {
+      const has = (i) =>
+        S.resp.has(i);
+
+      const L = [];
+
+      if (!has(0)) {
+        L.push(
+          "At 02:40 the attacker logs back in with the same stolen password."
+        );
+      }
+
+      if (!has(1)) {
+        L.push(
+          "WS-042 keeps talking to the C2 server and a second-stage payload lands at 02:45."
+        );
+      }
+
+      if (!has(2)) {
+        L.push(
+          "The attacker switches to a backup domain and keeps control."
+        );
+      }
+
+      if (!has(3)) {
+        L.push(
+          "Without preserved evidence, nobody can confidently establish what was stolen."
+        );
+      }
+
+      if (!has(4)) {
+        L.push(
+          "Two other finance users got the same email. One of them clicks the link later that morning."
+        );
+      }
+
+      if (!has(5)) {
+        L.push(
+          "Leadership hears about the incident from a customer instead of from the security team."
+        );
+      }
+
+      if (has(6)) {
+        L.push(
+          "The reimage wipes the available copy of the attacker tools. The scope of the breach stays unknown."
+        );
+      }
+
+      if (has(7)) {
+        L.push(
+          "Operations stop for six hours and the business loses a full shift of orders."
+        );
+      }
+
+      if (has(8)) {
+        L.push(
+          "The case is closed and the attacker keeps access. The stolen data is offered for sale a week later."
+        );
+      }
+
+      const core =
+        [0, 1, 2].filter(has).length;
+
+      let status = "Partially contained";
+
+      if (core === 3 && !S.bad) {
+        status = "Contained";
+      }
+
+      if (S.bad) {
+        status = "Breach continues";
+      }
+
+      const G = [
+        "Sarah account locked: attacker access through the stolen account is cut off.",
+        "WS-042 isolated: the beacon goes silent.",
+        "Domains blocked: the known C2 channel is disrupted."
+      ].filter((_, i) => has(i));
+
+      return `
+        <div
+          class="card ${
+            status === "Contained"
+              ? "okb"
+              : "badb"
+          }"
+        >
+          <b>
+            What happened next:
+            ${esc(status)}
+          </b>
+
+          ${
+            G.length
+              ? `
+                <div style="margin-top:10px">
+                  ${G
+                    .map(
+                      (x) => `
+                        <div class="ok">
+                          ✔ ${esc(x)}
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </div>
+              `
+              : ""
+          }
+
+          ${
+            L.length
+              ? `
+                <div style="margin-top:10px">
+                  ${L
+                    .map(
+                      (x) => `
+                        <div
+                          class="bad"
+                          style="margin-top:5px"
+                        >
+                          ✘ ${esc(x)}
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </div>
+              `
+              : ""
+          }
+        </div>
+      `;
+    }
+
+    /* =========================================================
+       REPORT
+       ========================================================= */
+
+    function setRep(i, v) {
+      if (S.done.report) return;
+
+      if (v === "") {
+        delete S.rep[i];
+      } else {
+        S.rep[i] = Number(v);
+      }
+
+      draw(1);
+    }
+
+    function reportText() {
+      const disabled =
+        S.done.report
+          ? "disabled"
+          : "";
+
+      return `
+        <label class="card">
+          <b>
+            What happened?
+            <span class="m">
+              Write it in your own words.
+            </span>
+          </b>
+
+          <textarea
+            ${disabled}
+            rows="4"
+            oninput="S.sum=this.value"
+            placeholder="Example: Sarah's credentials were captured through a phishing email and later used to access the VPN..."
+          >${esc(S.sum)}</textarea>
+        </label>
+
+        <label class="card">
+          <b>
+            What evidence supports your conclusion?
+          </b>
+
+          <textarea
+            ${disabled}
+            rows="4"
+            oninput="S.why=this.value"
+            placeholder="Mention the strongest evidence you found: unusual login, PowerShell, suspicious domain, data transfer..."
+          >${esc(S.why)}</textarea>
+        </label>
+
+        ${
+          S.notes
+            ? `
+              <div class="card">
+                <b>📝 Your Analyst Notes</b>
+                <pre>${esc(S.notes)}</pre>
+              </div>
+            `
+            : ""
+        }
+      `;
+    }
+
+    function subRep() {
+      let c = 0;
+
+      F.forEach((f, i) => {
+        if (
+          Number(S.rep[i]) === f.c
+        ) {
+          c++;
+        }
+      });
+
+      S.res.report = pc(
+        c,
+        F.length
+      );
+
+      S.done.report = true;
+
+      sfx(
+        S.res.report >= 70
+          ? "good"
+          : "bad"
+      );
+
+      draw(1);
+    }
+
+    /* =========================================================
+       PAGE RENDERERS
+       ========================================================= */
+
+    const P = {
+
+      /* -------------------------------------------------------
+         HOME
+         ------------------------------------------------------- */
+
+      home: () => `
+        <div class="hero">
+
+          <div class="hl">
+            CYBERTRACE
+          </div>
+
+          <h1>
+            Don't just learn cybersecurity.
+            <br>
+            Investigate it.
+          </h1>
+
+          <p class="hero-copy">
+            A short cybersecurity investigation game.
+            Follow the clues, reconstruct the incident,
+            make response decisions, and discover what
+            actually happened.
+          </p>
+
+        </div>
+
+        <div class="card okb">
+
+          <b>
+            🕵️ Your role: Security Analyst
+          </b>
+
+          <p>
+            You work on a company's security team.
+            You are not a hacker.
+            Your job is to investigate the incident,
+            understand the evidence, contain the threat,
+            and explain what happened.
+          </p>
+
+          <p class="m">
+            No cybersecurity experience is required.
+            You learn the concepts as you investigate.
+          </p>
+
+        </div>
+
+        <h2>
+          How to play
+        </h2>
+
+        <div class="grid">
+
+          <div class="card">
+            <b>01 · Spot the threats</b>
+            <br>
+            Some alerts are real attacks.
+            Some are false alarms.
+          </div>
+
+          <div class="card">
+            <b>02 · Collect evidence</b>
+            <br>
+            Examine files and identify suspicious clues.
+          </div>
+
+          <div class="card">
+            <b>03 · Rebuild the attack</b>
+            <br>
+            Connect the clues and reconstruct the timeline.
+          </div>
+
+          <div class="card">
+            <b>04 · Respond & report</b>
+            <br>
+            Contain the incident and explain your conclusion.
+          </div>
+
+        </div>
+
+        <h2 style="margin-top:28px">
+          Color guide
+        </h2>
+
+        <div class="lg">
+
+          <span>
+            <i class="d r"></i>
+            Dangerous
+          </span>
+
+          <span>
+            <i class="d a"></i>
+            Suspicious
+          </span>
+
+          <span>
+            <i class="d g"></i>
+            Safe / confirmed
+          </span>
+
+        </div>
+
+        <div class="card">
+
+          <b>
+            October Edition · Cybersecurity Awareness Month
+          </b>
+
+          <p class="m">
+            ⏱ About 10–15 minutes · 1 case · Beginner-friendly
+          </p>
+
+          <p class="m">
+            This is a fictional training scenario inspired
+            by common real-world attack patterns.
+          </p>
+
+        </div>
+
+        <button
+          class="go"
+          onclick="
+            sfx('go');
+            S.v='brief';
+            S.max=Math.max(S.max,vi('brief'));
+            draw();
+          "
+        >
+          Start Case #001 →
+        </button>
+      `,
+
+      /* -------------------------------------------------------
+         BRIEF
+         ------------------------------------------------------- */
+
+      brief: () => `
+        <span class="siren">
+          🚨 HIGH SEVERITY ALERT
+        </span>
+
+        <h1>
+          The 2:17 AM Alert
+        </h1>
+
+        <p>
+          Something happened at Nimbus Logistics.
+          You are the <b>security analyst</b> on duty,
+          and your job is to find out what.
+        </p>
+
+        <div class="card">
+
+          <b>
+            Your mission
+          </b>
+
+          <p class="m">
+            Find out what happened, put the events in order,
+            contain the attacker, and write the report.
+          </p>
+
+        </div>
+
+        <div class="card">
+          <b>Remember</b>
+
+          <p class="m">
+            Not every alert is an attack.
+            Not every suspicious clue proves the whole story.
+            Your job is to connect the evidence.
+          </p>
+        </div>
+
+        <button
+          class="go"
+          onclick="adv('alerts')"
+        >
+          Start investigation →
+        </button>
+      `,
+
+      /* -------------------------------------------------------
+         ALERTS
+         ------------------------------------------------------- */
+
+      alerts: () => `
+        <h2>
+          🚨 Alert Triage
+        </h2>
+
+        <p class="m">
+          Is each alert part of the incident,
+          or is it normal activity?
+          Use the context around each alert.
+        </p>
+
+        <div class="lg">
+
+          <span>
+            <i class="d r"></i>
+            Malicious
+          </span>
+
+          <span>
+            <i class="d a"></i>
+            Suspicious
+          </span>
+
+          <span>
+            <i class="d g"></i>
+            Benign
+          </span>
+
+        </div>
+
+        ${AL
+          .map(
+            (a, i) => `
+              <div
+                class="
+                  card
+                  ${
+                    S.done.alerts
+                      ? a.k === "s"
+                        ? "dng"
+                        : "sfe"
+                      : S.al[i] === "s"
+                        ? "wnc"
+                        : S.al[i] === "b"
+                          ? "sfe"
+                          : ""
+                  }
+                "
+              >
+
+                <div class="t">
+                  ${esc(a.t)}
+                </div>
+
+                <pre>${esc(a.x)}</pre>
+
+                ${
+                  S.done.alerts
+                    ? `
+                      <span
+                        class="${
+                          S.al[i] === a.k
+                            ? "ok"
+                            : "bad"
+                        }"
+                      >
+                        ${
+                          S.al[i] === a.k
+                            ? "✔"
+                            : "✘"
+                        }
+
+                        ${esc(a.w)}
+                      </span>
+                    `
+                    : `
+                      <div class="row">
+
+                        <button
+                          class="b ${
+                            S.al[i] === "s"
+                              ? "sel"
+                              : ""
+                          }"
+                          onclick="setA(${i},'s')"
+                        >
+                          Looks dangerous
+                        </button>
+
+                        <button
+                          class="b ${
+                            S.al[i] === "b"
+                              ? "sel"
+                              : ""
+                          }"
+                          onclick="setA(${i},'b')"
+                        >
+                          Looks normal
+                        </button>
+
+                      </div>
+                    `
+                }
+
+              </div>
+            `
+          )
+          .join("")}
+
+        ${
+          S.done.alerts
+            ? `
+              <div class="card okb">
+                <b>
+                  Triage complete
+                </b>
+
+                <p class="m">
+                  You separated normal activity from
+                  the suspicious events that need investigation.
+                </p>
+              </div>
+
+              ${next("evidence")}
+            `
+            : `
+              <button
+                class="go"
+                ${
+                  Object.keys(S.al).length < AL.length
+                    ? "disabled"
+                    : ""
+                }
+                onclick="subAl()"
+              >
+                Confirm classification
+              </button>
+            `
+        }
+      `,
+
+      /* -------------------------------------------------------
+         EVIDENCE
+         ------------------------------------------------------- */
+
+      evidence: () => `
+        <h2>
+          🗂️ Evidence
+        </h2>
+
+        <p class="m">
+          Open the files and tap the lines that look connected
+          to the attack.
+          Wrong taps reduce your investigation score,
+          but you can always review the feedback.
+        </p>
+
+        <div class="card">
+
+          <div class="sc">
+            <span>
+              Evidence examined
+            </span>
+
+            <span>
+              ${S.seen.size} / ${E.length}
+            </span>
+          </div>
+
+          ${bar(
+            pc(S.seen.size, E.length)
+          )}
+
+          <div class="m">
+            Flagged clues:
+            <b>${S.fl.size}</b>
+          </div>
+
+        </div>
+
+        <div class="grid">
+
+          ${E
+            .map(
+              (e, i) => `
+                <button
+                  class="
+                    ev
+                    ${
+                      S.seen.has(i)
+                        ? "seen"
+                        : ""
+                    }
+                    ${
+                      S.open === i
+                        ? "sel"
+                        : ""
+                    }
+                  "
+                  onclick="openE(${i})"
+                >
+
+                  <span class="et">
+                    ${e.i} ${esc(e.n)}
+                  </span>
+
+                  <small>
+                    ${
+                      S.seen.has(i)
+                        ? "✓ Examined"
+                        : "Examine evidence"
+                    }
+                  </small>
+
+                </button>
+              `
+            )
+            .join("")}
+
+        </div>
+
+        ${
+          S.open !== null
+            ? `
+              <div class="win">
+
+                <div class="wb">
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                  ${esc(E[S.open].n)}
+                </div>
+
+                <p class="m">
+                  ${esc(E[S.open].d)}
+                </p>
+
+                <pre>${lines()}</pre>
+
+              </div>
+            `
+            : `
+              <div class="card">
+                <b>
+                  Investigation tip
+                </b>
+
+                <p class="m">
+                  Look for unusual times, strange domains,
+                  unfamiliar IP addresses, hidden commands,
+                  and connections that appear in more than one file.
+                </p>
+              </div>
+            `
+        }
+
+        ${
+          S.done.evidence
+            ? `
+              <div class="card">
+
+                <b>
+                  Evidence review
+                </b>
+
+                <p class="m">
+                  Green = good catch.
+                  Red crossed out = wrong tap.
+                  Red dashed = missed clue.
+                </p>
+
+                <p>
+                  You found
+                  <b>${evScore().g}</b>
+                  of
+                  <b>${IOC}</b>
+                  target clues with
+                  <b>${evScore().w}</b>
+                  wrong taps.
+                </p>
+
+              </div>
+
+              ${next("clues")}
+            `
+            : `
+              <button
+                class="go"
+                ${
+                  S.fl.size
+                    ? ""
+                    : "disabled"
+                }
+                onclick="subEv()"
+              >
+                Check my evidence →
+              </button>
+            `
+        }
+      `,
+
+      /* -------------------------------------------------------
+         CONNECT
+         ------------------------------------------------------- */
+
+      clues: () => {
+        const answers = S.q.clues;
+
+        const N = [
+          "📧 Phishing email",
+          "👤 Sarah",
+          "🔐 Login",
+          "💻 WS-042",
+          "🌐 Attacker site"
+        ];
+
+        return `
+          <h2>
+            🔗 Connect the Clues
+          </h2>
+
+          <p class="m">
+            A single clue can look harmless.
+            Several clues together can tell a story.
+          </p>
+
+          <div class="chain">
+
+            ${N
+              .map(
+                (n, i) => `
+                  <span class="nd">
+                    ${n}
+                  </span>
+
+                  ${
+                    i < 4
+                      ? `
+                        <span
+                          class="
+                            lk
+                            ${
+                              answers[i] == null
+                                ? ""
+                                : S.done.clues
+                                  ? answers[i] ===
+                                    QI.clues[i].c
+                                    ? "ok"
+                                    : "bad"
+                                  : "wn"
+                            }
+                          "
+                        >
+                          ${
+                            answers[i] == null
+                              ? "?"
+                              : "→"
+                          }
+                        </span>
+                      `
+                      : ""
+                  }
+                `
+              )
+              .join("")}
+
+          </div>
+
+          ${quiz(
+            "clues",
+            "Build the attack story",
+            "For each link, choose the clue that connects the two.",
+            "timeline"
+          )}
+        `;
+      },
+
+      /* -------------------------------------------------------
+         TIMELINE
+         ------------------------------------------------------- */
+
+      timeline: () => {
+        if (!S.tl) {
+          S.tl = [3, 0, 5, 2, 1, 4];
+        }
+
+        const done = S.done.timeline;
+
+        return `
+          <h2>
+            🕐 Rebuild the Timeline
+          </h2>
+
+          <p class="m">
+            Put the events in the order they happened.
+            Oldest event goes at the top.
+          </p>
+
+          <div class="card">
+
+            <b>
+              Why does order matter?
+            </b>
+
+            <p class="m">
+              Investigators use timestamps to understand
+              what happened first, what followed,
+              and which events are connected.
+            </p>
+
+          </div>
+
+          ${S.tl
+            .map(
+              (x, p) => `
+                <div
+                  class="
+                    card tl
+                    ${
+                      done
+                        ? x === p
+                          ? "okb"
+                          : "badb"
+                        : ""
+                    }
+                  "
+                  ${
+                    done
+                      ? ""
+                      : `
+                        draggable="true"
+                        ondragstart="dg=${p}"
+                        ondragover="event.preventDefault()"
+                        ondrop="mv(dg,${p})"
+                      `
+                  }
+                >
+
+                  <span class="t">
+                    ${
+                      done
+                        ? T[x].t
+                        : `#${p + 1}`
+                    }
+                  </span>
+
+                  <span>
+                    ${esc(T[x].x)}
+                  </span>
+
+                  ${
+                    done
+                      ? x === p
+                        ? `
+                          <b class="ok">
+                            ✔
+                          </b>
+                        `
+                        : `
+                          <b class="bad">
+                            ✘
+                          </b>
+                        `
+                      : `
+                        <span class="ar">
+
+                          <button
+                            class="b"
+                            onclick="mv(${p},${p - 1})"
+                            aria-label="Move up"
+                          >
+                            ▲
+                          </button>
+
+                          <button
+                            class="b"
+                            onclick="mv(${p},${p + 1})"
+                            aria-label="Move down"
+                          >
+                            ▼
+                          </button>
+
+                        </span>
+                      `
+                  }
+
+                </div>
+              `
+            )
+            .join("")}
+
+          ${
+            done
+              ? next("attack")
+              : `
+                <button
+                  class="go"
+                  onclick="subTl()"
+                >
+                  Check my order
+                </button>
+              `
+          }
+        `;
+      },
+
+      /* -------------------------------------------------------
+         ATT&CK
+         ------------------------------------------------------- */
+
+      attack: () =>
+        quiz(
+          "attack",
+          "🎯 What did the attacker use?",
+          "Pick the plain description. The technical concept appears after each answer.",
+          "response"
+        ),
+
+      /* -------------------------------------------------------
+         RESPONSE
+         ------------------------------------------------------- */
+
+      response: () => `
+        <h2>
+          🚨 Incident Response
+        </h2>
+
+        <p class="m">
+          The attacker may still be inside.
+          Choose the actions you would take.
+          Think about containment, evidence,
+          and business impact.
+        </p>
+
+        <div class="card wnc">
+
+          <b>
+            Response principle
+          </b>
+
+          <p class="m">
+            Contain the threat without destroying the evidence
+            you still need to understand the incident.
+          </p>
+
+        </div>
+
+        ${R
+          .map(
+            (r, i) => `
+              <button
+                class="
+                  ev wide
+                  ${
+                    S.resp.has(i)
+                      ? "sel"
+                      : ""
+                  }
+                  ${
+                    S.done.response &&
+                    S.resp.has(i)
+                      ? r.p > 0
+                        ? "okb"
+                        : "badb"
+                      : ""
+                  }
+                "
+                ${
+                  S.done.response
+                    ? "disabled"
+                    : ""
+                }
+                onclick="togR(${i})"
+              >
+
+                <b>
+                  ${esc(r.n)}
+                </b>
+
+                <small>
+                  Stops attacker:
+                  ${esc(r.s)}
+                  ·
+                  Disrupts work:
+                  ${esc(r.b)}
+                  ·
+                  Keeps evidence:
+                  ${esc(r.e)}
+                </small>
+
+                ${
+                  S.done.response &&
+                  S.resp.has(i)
+                    ? `
+                      <em>
+                        You chose this:
+                        ${esc(r.w)}
+                      </em>
+                    `
+                    : ""
+                }
+
+              </button>
+            `
+          )
+          .join("")}
+
+        ${
+          S.done.response
+            ? `
+              ${outcome()}
+
+              ${next("report")}
+            `
+            : `
+              <button
+                class="go"
+                ${
+                  S.resp.size
+                    ? ""
+                    : "disabled"
+                }
+                onclick="subR()"
+              >
+                Execute decisions →
+              </button>
+            `
+        }
+      `,
+
+      /* -------------------------------------------------------
+         REPORT
+         ------------------------------------------------------- */
+
+      report: () => `
+        <h2>
+          📄 Final Incident Report
+        </h2>
+
+        <p class="m">
+          A good analyst does not just find clues.
+          They explain what those clues mean.
+        </p>
+
+        ${F
+          .map(
+            (f, i) => `
+              <label class="card">
+
+                <b>
+                  ${esc(f.n)}
+                </b>
+
+                <select
+                  ${
+                    S.done.report
+                      ? "disabled"
+                      : ""
+                  }
+                  onchange="setRep(${i},this.value)"
+                  dir="ltr"
+                >
+
+                  <option value="">
+                    —
+                  </option>
+
+                  ${f.o
+                    .map(
+                      (o, j) => `
+                        <option
+                          value="${j}"
+                          ${
+                            Number(S.rep[i]) === j
+                              ? "selected"
+                              : ""
+                          }
+                        >
+                          ${esc(o)}
+                        </option>
+                      `
+                    )
+                    .join("")}
+
+                </select>
+
+                ${
+                  S.done.report
+                    ? `
+                      <span
+                        class="${
+                          Number(S.rep[i]) === f.c
+                            ? "ok"
+                            : "bad"
+                        }"
+                      >
+                        ${
+                          Number(S.rep[i]) === f.c
+                            ? "✔ Correct"
+                            : `✘ Correct answer: ${esc(f.o[f.c])}`
+                        }
+                      </span>
+                    `
+                    : ""
+                }
+
+              </label>
+            `
+          )
+          .join("")}
+
+        ${reportText()}
+
+        ${
+          S.done.report
+            ? next("score")
+            : `
+              <button
+                class="go"
+                ${
+                  Object.keys(S.rep).length <
+                  F.length
+                    ? "disabled"
+                    : ""
+                }
+                onclick="subRep()"
+              >
+                Submit report →
+              </button>
+            `
+        }
+      `,
+
+      /* -------------------------------------------------------
+         SCORE
+         ------------------------------------------------------- */
+
+      score: () => {
+        const r = S.res;
+
+        const ev =
+          r.evidence || 0;
+
+        const cats = [
+          ["🔎 Evidence Discovery", ev],
+          ["🧩 Alert Triage", r.alerts || 0],
+          ["🔗 Connecting Clues", r.clues || 0],
+          ["🕐 Timeline", r.timeline || 0],
+          ["🎯 ATT&CK Learning", r.attack || 0],
+          ["🚨 Response", r.response || 0],
+          ["📄 Reporting", r.report || 0]
+        ];
+
+        const xp =
+          Math.max(
+            0,
+            Math.round(
+              cats.reduce(
+                (a, c) => a + c[1],
+                0
+              ) * 0.65
+            ) - S.pen
+          );
+
+        let rank = "Rookie";
+
+        if (xp >= 380) {
+          rank = "Investigator";
+        } else if (xp >= 270) {
+          rank = "Analyst";
+        }
+
+        const ach = [
+          [
+            "🕵️ Evidence Hunter",
+            ev === 100
+          ],
+
+          [
+            "🚨 Alert Spotter",
+            r.alerts === 100
+          ],
+
+          [
+            "🕐 Timeline Detective",
+            r.timeline === 100
+          ],
+
+          [
+            "🔗 Connection Maker",
+            r.clues === 100
+          ],
+
+          [
+            "🎯 ATT&CK Learner",
+            r.attack === 100
+          ],
+
+          [
+            "🚨 Incident Responder",
+            (r.response || 0) >= 80 &&
+            !S.bad
+          ]
+        ];
+
+        const left =
+          V
+            .slice(1, 8)
+            .filter(([k]) => !S.done[k])
+            .length;
+
+        return `
+          <h2>
+            🏆 Investigation Score
+          </h2>
+
+          ${
+            left
+              ? `
+                <div class="card wnc">
+                  <b>
+                    ${left} stage(s) were not completed.
+                  </b>
+
+                  <p class="m">
+                    Incomplete stages receive zero points.
+                  </p>
+                </div>
+              `
+              : ""
+          }
+
+          <div class="card">
+
+            <div class="m">
+              CASE #001 · FINAL RESULT
+            </div>
+
+            <div class="xp">
+              ${xp} XP
+            </div>
+
+            <p>
+              In-game rank:
+              <b>${esc(rank)}</b>
+            </p>
+
+            <p class="m">
+              XP and ranks represent progress inside
+              CyberTrace. They are not a professional
+              cybersecurity certification or assessment.
+            </p>
+
+          </div>
+
+          <h2>
+            Investigation breakdown
+          </h2>
+
+          ${cats
+            .map(
+              ([label, value]) => `
+                <div class="sc">
+                  <span>${esc(label)}</span>
+                  <span>${value}%</span>
+                </div>
+
+                ${bar(value)}
+              `
+            )
+            .join("")}
+
+          <h2 style="margin-top:30px">
+            🏅 Achievements
+          </h2>
+
+          <div>
+            ${ach
+              .map(
+                ([name, unlocked]) => `
+                  <span
+                    class="badge ${
+                      unlocked
+                        ? ""
+                        : "off"
+                    }"
+                  >
+                    ${esc(name)}
+                  </span>
+                `
+              )
+              .join("")}
+          </div>
+
+          ${
+            S.done.response
+              ? outcome()
+              : ""
+          }
+
+          <div class="card">
+
+            <b>
+              🔓 CASE DEBRIEF
+            </b>
+
+            <h3 style="margin-top:14px">
+              What actually happened?
+            </h3>
+
+            <ol>
+
+              <li>
+                <b>Initial access:</b>
+                a phishing email tricked Sarah into
+                typing her password on a fake page.
+              </li>
+
+              <li>
+                <b>Account compromise:</b>
+                the attacker used her stolen password
+                to log in from an unfamiliar location.
+              </li>
+
+              <li>
+                <b>Endpoint activity:</b>
+                a hidden PowerShell command ran
+                on WS-042.
+              </li>
+
+              <li>
+                <b>Command and control:</b>
+                WS-042 began repeatedly contacting
+                a suspicious outside server.
+              </li>
+
+              <li>
+                <b>Data transfer:</b>
+                1.8 GB left the network through
+                the suspicious connection.
+              </li>
+
+            </ol>
+
+            <div
+              class="card"
+              style="margin-top:18px"
+            >
+              <b>
+                💡 The big idea
+              </b>
+
+              <p class="m">
+                A suspicious login by itself might not tell
+                you the whole story. A phishing email,
+                an unusual login, endpoint activity,
+                a suspicious server, and a large data transfer
+                become much more meaningful when you connect them.
+              </p>
+            </div>
+
+            <p class="m">
+              This is a fictional training scenario inspired
+              by common real-world attack patterns.
+            </p>
+
+            <p class="m">
+              CyberTrace ranks show in-game progress,
+              not professional skill or certification.
+            </p>
+
+          </div>
+
+          <button
+            class="go"
+            onclick="
+              S=mk();
+              draw();
+            "
+          >
+            Play Case #001 Again ↻
+          </button>
+        `;
+      }
+    };
+
+    /* =========================================================
+       DRAW
+       ========================================================= */
+
+    function draw(keep = false) {
+
+      /*
+       * The original prototype rendered the game inside #main
+       * but did not render the sidebar navigation.
+       * We now keep both navigation systems synchronized.
+       */
+
+      $("#hud").style.display =
+        S.v === "home"
+          ? "none"
+          : "flex";
+
+      $("#hud").innerHTML =
+        S.v === "home"
+          ? ""
+          : hud();
+
+      $("#splash").innerHTML =
+        S.sp
+          ? splash()
+          : "";
+
+      $("#main").innerHTML =
+        maya() +
+        hintBox() +
+        P[S.v]() +
+        notesBox();
+
+      renderNav();
+
+      if (!keep) {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      }
+    }
+
+    function renderNav() {
+      const nav = $("#nav");
+
+      if (S.v === "home") {
+        nav.innerHTML = `
+          <button
+            class="on"
+            onclick="go('home')"
+          >
+            Home
+          </button>
+        `;
+
+        return;
+      }
+
+      nav.innerHTML = V.map(
+        ([k, label], i) => `
+          <button
+            class="${S.v === k ? "on" : ""}"
+            ${i > S.max ? "disabled" : ""}
+            onclick="go('${k}')"
+          >
+            ${
+              i > S.max
+                ? "🔒 "
+                : ""
+            }
+            ${esc(label)}
+          </button>
+        `
+      ).join("");
+    }
+
+    /* =========================================================
+       START
+       ========================================================= */
+
+    draw();
+  </script>
+
+</body>
+</html>
